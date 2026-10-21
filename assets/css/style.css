@@ -2546,3 +2546,17 @@ textarea.form-input {
 :root:not([data-theme="light"]) .pf-item__link {
     color: color-mix(in srgb, var(--pf-accent, #667eea) 70%, #fff);
 }
+
+/* Portfolyo kaydı düzenleme */
+.link-item--editing { border-color: var(--primary-start); box-shadow: 0 0 0 1px var(--primary-start) inset; }
+.pf-edit-form {
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--primary-start);
+    background: var(--glass-bg);
+}
+.pf-edit-form__title { margin-bottom: 14px; font-size: 0.9rem; color: var(--text-secondary); }
+.pf-edit-form__title i { color: var(--primary-start); margin-right: 6px; }
+.pf-current-img { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.pf-current-img img { width: 96px; height: 72px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); }
+.pf-check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-secondary); cursor: pointer; }

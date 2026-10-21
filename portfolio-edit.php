@@ -71,17 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('portfolio-edit.php');
     }
 
-    // --- Kayıt ekle ---
-    if ($action === 'add_item') {
+    // Ekle / düzenle formunun ortak alanlarını okur ve doğrular.
+    // Hata olursa $backUrl'e yönlendirir.
+    $readItemInput = function (string $backUrl): array {
         $title = cleanText($_POST['item_title'] ?? '', 150);
-        $type  = sanitizePortfolioItemType($_POST['item_type'] ?? '');
-        $desc  = cleanText($_POST['item_description'] ?? '', 1000);
-        $date  = cleanText($_POST['item_date'] ?? '', 30);
         $url   = trim($_POST['item_url'] ?? '');
 
         if ($title === '') {
             flash('error', 'Başlık zorunludur.');
-            redirect('portfolio-edit.php#items');
+            redirect($backUrl);
         }
         if ($url !== '') {
             if (!preg_match('~^https?://~i', $url)) {
@@ -89,9 +87,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if (!filter_var($url, FILTER_VALIDATE_URL) || mb_strlen($url) > 500) {
                 flash('error', 'Geçerli bir bağlantı adresi girin.');
-                redirect('portfolio-edit.php#items');
+                redirect($backUrl);
             }
         }
+        return [
+            'title' => $title,
+            'type'  => sanitizePortfolioItemType($_POST['item_type'] ?? ''),
+            'desc'  => cleanText($_POST['item_description'] ?? '', 1000),
+            'date'  => cleanText($_POST['item_date'] ?? '', 30),
+            'url'   => $url,
+        ];
+    };
+
+    // --- Kayıt düzenle ---
+    if ($action === 'update_item') {
+        $itemId  = (int) ($_POST['item_id'] ?? 0);
+        $backUrl = 'portfolio-edit.php?edit=' . $itemId . '#item-form';
+
+        $sel = $pdo->prepare('SELECT image FROM portfolio_items WHERE id = ? AND user_id = ?');
+        $sel->execute([$itemId, $userId]);
+        $existing = $sel->fetch(PDO::FETCH_ASSOC);
+        if (!$existing) {
+            flash('error', 'Kayıt bulunamadı.');
+            redirect('portfolio-edit.php#items');
+        }
+
+        $in    = $readItemInput($backUrl);
+        $image = $existing['image'];
+
+        if (isset($_FILES['item_image']) && $_FILES['item_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $newImage = uploadProfileImage($_FILES['item_image']);
+            if (!$newImage) {
+                redirect($backUrl); // hata mesajı flash ile ayarlandı
+            }
+            $image = $newImage;
+        } elseif (!empty($_POST['remove_image'])) {
+            $image = null;
+        }
+
+        $pdo->prepare(
+            'UPDATE portfolio_items
+                SET item_type = ?, title = ?, description = ?, item_date = ?, url = ?, image = ?
+              WHERE id = ? AND user_id = ?'
+        )->execute([$in['type'], $in['title'], $in['desc'] ?: null, $in['date'] ?: null, $in['url'] ?: null, $image, $itemId, $userId]);
+
+        // Eski görsel değiştiyse diskten sil
+        if ($existing['image'] && $existing['image'] !== $image) {
+            deleteProfileImage($existing['image']);
+        }
+
+        flash('success', 'Kayıt güncellendi.');
+        redirect('portfolio-edit.php#item-' . $itemId);
+    }
+
+    // --- Kayıt ekle ---
+    if ($action === 'add_item') {
+        $in    = $readItemInput('portfolio-edit.php#items');
+        $title = $in['title'];
+        $type  = $in['type'];
+        $desc  = $in['desc'];
+        $date  = $in['date'];
+        $url   = $in['url'];
 
         $cnt = $pdo->prepare('SELECT COUNT(*) FROM portfolio_items WHERE user_id = ?');
         $cnt->execute([$userId]);
@@ -164,6 +220,17 @@ $itemTypes    = getPortfolioItemTypes();
 $gradeOptions = getGradeOptions();
 $portfolioUrl = SITE_URL . '/p/' . $user['username'];
 $nfcTarget    = sanitizeNfcTarget($user['nfc_target'] ?? 'card');
+
+// Düzenlenen kayıt (?edit=ID) — sadece kullanıcının kendi kaydı
+$editItem = null;
+$editId   = (int) ($_GET['edit'] ?? 0);
+foreach ($items as $it) {
+    if ((int) $it['id'] === $editId) {
+        $editItem = $it;
+        break;
+    }
+}
+$f = $editItem ?? ['item_type' => 'achievement', 'title' => '', 'description' => '', 'item_date' => '', 'url' => '', 'image' => null];
 
 $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 ?>
@@ -320,7 +387,7 @@ $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                 <div class="links-list">
                     <?php foreach ($items as $idx => $item):
                         $t = $itemTypes[$item['item_type']] ?? $itemTypes['other']; ?>
-                    <div class="link-item">
+                    <div class="link-item<?= $editItem && (int) $editItem['id'] === (int) $item['id'] ? ' link-item--editing' : '' ?>" id="item-<?= (int) $item['id'] ?>">
                         <div class="link-item__icon"><i class="<?= $e($t['icon']) ?>"></i></div>
                         <div class="link-item__info">
                             <div class="link-item__title"><?= $e($item['title']) ?></div>
@@ -331,6 +398,9 @@ $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                             </div>
                         </div>
                         <div class="pf-item-actions">
+                            <a href="portfolio-edit.php?edit=<?= (int) $item['id'] ?>#item-form" class="btn btn--glass btn--sm" title="Düzenle">
+                                <i class="fas fa-pen"></i>
+                            </a>
                             <?php foreach (['up' => 'fa-arrow-up', 'down' => 'fa-arrow-down'] as $dir => $icon):
                                 $disabled = ($dir === 'up' && $idx === 0) || ($dir === 'down' && $idx === count($items) - 1); ?>
                             <form method="POST" action="portfolio-edit.php">
@@ -359,46 +429,63 @@ $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                 <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 20px;">Henüz kayıt eklemediniz. İlk başarınızı ekleyin!</p>
                 <?php endif; ?>
 
-                <form method="POST" action="portfolio-edit.php" enctype="multipart/form-data" class="add-link-form">
+                <form method="POST" action="portfolio-edit.php" enctype="multipart/form-data" class="add-link-form<?= $editItem ? ' pf-edit-form' : '' ?>" id="item-form">
                     <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                    <?php if ($editItem): ?>
+                    <input type="hidden" name="action" value="update_item">
+                    <input type="hidden" name="item_id" value="<?= (int) $editItem['id'] ?>">
+                    <div class="pf-edit-form__title"><i class="fas fa-pen"></i> Kaydı düzenle: <strong><?= $e($editItem['title']) ?></strong></div>
+                    <?php else: ?>
                     <input type="hidden" name="action" value="add_item">
+                    <?php endif; ?>
 
                     <div class="pf-add-grid">
                         <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label" for="item_type">Tür</label>
                             <select id="item_type" name="item_type" class="form-input">
                                 <?php foreach ($itemTypes as $key => $t): ?>
-                                <option value="<?= $e($key) ?>"><?= $e($t['label']) ?></option>
+                                <option value="<?= $e($key) ?>" <?= $f['item_type'] === $key ? 'selected' : '' ?>><?= $e($t['label']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label" for="item_title">Başlık *</label>
                             <input type="text" id="item_title" name="item_title" class="form-input" maxlength="150" required
-                                   placeholder="Örn. TÜBİTAK Bilim Olimpiyatı - Bölge 2.si">
+                                   placeholder="Örn. TÜBİTAK Bilim Olimpiyatı - Bölge 2.si" value="<?= $e($f['title']) ?>">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label" for="item_date">Tarih</label>
-                            <input type="text" id="item_date" name="item_date" class="form-input" maxlength="30" placeholder="Örn. Mayıs 2025">
+                            <input type="text" id="item_date" name="item_date" class="form-input" maxlength="30" placeholder="Örn. Mayıs 2025" value="<?= $e($f['item_date']) ?>">
                         </div>
                         <div class="form-group pf-add-grid__wide" style="margin-bottom:0;">
                             <label class="form-label" for="item_description">Açıklama</label>
                             <textarea id="item_description" name="item_description" class="form-input" rows="2" maxlength="1000"
-                                      placeholder="Ne yaptın, ne öğrendin?"></textarea>
+                                      placeholder="Ne yaptın, ne öğrendin?"><?= $e($f['description']) ?></textarea>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label" for="item_url">Bağlantı (isteğe bağlı)</label>
-                            <input type="text" id="item_url" name="item_url" class="form-input" placeholder="https://...">
+                            <input type="text" id="item_url" name="item_url" class="form-input" placeholder="https://..." value="<?= $e($f['url']) ?>">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
-                            <label class="form-label" for="item_image">Fotoğraf / Belge görseli</label>
+                            <label class="form-label" for="item_image"><?= !empty($f['image']) ? 'Fotoğrafı değiştir' : 'Fotoğraf / Belge görseli' ?></label>
                             <input type="file" id="item_image" name="item_image" class="form-input" accept="image/jpeg,image/png,image/gif,image/webp">
                         </div>
+                        <?php if (!empty($f['image'])): ?>
+                        <div class="form-group pf-add-grid__wide pf-current-img" style="margin-bottom:0;">
+                            <img src="<?= $e(SITE_URL . '/uploads/' . $f['image']) ?>" alt="Mevcut görsel">
+                            <label class="pf-check">
+                                <input type="checkbox" name="remove_image" value="1"> Mevcut fotoğrafı kaldır
+                            </label>
+                        </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="mt-md">
-                        <button type="submit" class="btn btn--primary btn--sm">
-                            <i class="fas fa-plus"></i> Kayıt Ekle
-                        </button>
+                    <div class="mt-md" style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <?php if ($editItem): ?>
+                        <button type="submit" class="btn btn--primary btn--sm"><i class="fas fa-check"></i> Değişiklikleri Kaydet</button>
+                        <a href="portfolio-edit.php#item-<?= (int) $editItem['id'] ?>" class="btn btn--glass btn--sm"><i class="fas fa-times"></i> Vazgeç</a>
+                        <?php else: ?>
+                        <button type="submit" class="btn btn--primary btn--sm"><i class="fas fa-plus"></i> Kayıt Ekle</button>
+                        <?php endif; ?>
                     </div>
                 </form>
             </div>
