@@ -1,0 +1,124 @@
+# =====================================================
+# NFC Kartvizit - Ana .htaccess
+# =====================================================
+
+# Dizin listelemeyi kapat
+Options -Indexes
+
+# Karakter seti
+AddDefaultCharset UTF-8
+
+# =====================================================
+# Hassas Dosyalara Erişimi Engelle
+# =====================================================
+
+# config.php dosyasına dışarıdan erişimi engelle
+<Files "config.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# db.php dosyasına dışarıdan erişimi engelle
+<Files "db.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# auth.php dosyasına dışarıdan erişimi engelle
+<Files "auth.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# helpers.php dosyasına dışarıdan erişimi engelle
+<Files "helpers.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# .sql dosyalarına erişimi engelle
+<FilesMatch "\.sql$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# .htaccess dosyasına erişimi engelle
+<Files ".htaccess">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# =====================================================
+# URL Yeniden Yazma (mod_rewrite)
+# =====================================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /nfc/
+
+    # HTTPS yönlendirmesi (canlıda açın)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # /u/kullaniciadi → profile.php?username=kullaniciadi
+    RewriteRule ^u/([a-zA-Z0-9_-]+)/?$ profile.php?username=$1 [L,QSA]
+
+    # /p/kullaniciadi → portfolio.php?username=kullaniciadi (öğrenci portfolyosu)
+    RewriteRule ^p/([a-zA-Z0-9_-]+)/?$ portfolio.php?username=$1 [L,QSA]
+
+    # /t/KOD → t.php?code=KOD (kalıcı NFC/QR kısa linki)
+    RewriteRule ^t/([a-zA-Z0-9_-]+)/?$ t.php?code=$1 [L,QSA]
+
+    # uploads/ dizininde PHP çalıştırmayı engelle
+    RewriteRule ^uploads/.*\.ph(p[3457]?|t|tml)$ - [F,L]
+</IfModule>
+
+# =====================================================
+# Güvenlik Başlıkları
+# =====================================================
+<IfModule mod_headers.c>
+    # XSS koruması
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# =====================================================
+# Sıkıştırma (Performans)
+# =====================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>

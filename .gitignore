@@ -1,0 +1,8 @@
+# Kullanıcı yüklemeleri (kişisel fotoğraflar) - klasör yapısı korunur
+uploads/*
+!uploads/.gitkeep
+
+# Yerel araç / not dosyaları
+.claude/
+Yeni Metin Belgesi.txt
+*.zip
