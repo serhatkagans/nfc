@@ -113,6 +113,7 @@ $desc  = $portfolio['headline'] ?: ($schoolLine ?: 'Öğrenci dijital portfolyos
             --shadow-glow-primary: 0 0 30px <?= $theme['start'] ?>55;
             --pf-accent: <?= $theme['start'] ?>;
         }
+        [data-theme="light"] { --primary-start: <?= darkenHex($theme['start'], 0.45) ?>; --pf-accent: <?= darkenHex($theme['start'], 0.45) ?>; }
         body.profile-bg {
             background: linear-gradient(135deg, <?= $theme['bg1'] ?> 0%, <?= $theme['bg2'] ?> 55%, <?= $theme['bg1'] ?> 100%);
             background-size: 400% 400%;

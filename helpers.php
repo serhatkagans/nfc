@@ -678,3 +678,20 @@ function cleanText(?string $text, int $maxLen): string
     return mb_substr($text, 0, $maxLen);
 }
 
+/**
+ * Hex rengi koyulaştırır (açık temada okunur vurgu yazısı için).
+ * Örn. darkenHex('#f7971e', 0.45)
+ */
+function darkenHex(string $hex, float $amount): string
+{
+    $hex = ltrim($hex, '#');
+    if (strlen($hex) === 3) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+    $out = '#';
+    foreach (str_split($hex, 2) as $c) {
+        $out .= sprintf('%02x', (int) round(hexdec($c) * (1 - $amount)));
+    }
+    return $out;
+}
+

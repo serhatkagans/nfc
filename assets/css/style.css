@@ -2499,3 +2499,50 @@ textarea.form-input {
     .pf-page { padding-top: 24px; }
     .pf-section { padding: 22px 18px 18px; }
 }
+
+/* ==========================================
+   Kontrast düzeltmeleri (WCAG AA ≥ 4.5:1)
+   ========================================== */
+:root {
+    --text-muted: rgba(255, 255, 255, 0.55);
+    --btn-gradient: linear-gradient(135deg, #5466d6 0%, #6a3f99 100%);
+}
+.btn--primary,
+.pf-filter__btn.active { background: var(--btn-gradient); }
+
+/* Renkli sosyal butonlarda beyaz yazıyı belirginleştir */
+.social-btn:not(.social-btn--qr):not(.social-btn--custom):not(.social-btn--vcard) {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.status-ok { color: #00d2ff; }
+.danger-title { color: #ff6b81; }
+
+[data-theme="light"] {
+    --text-tertiary: rgba(26, 26, 46, 0.68);
+    --text-muted: rgba(26, 26, 46, 0.62);
+    --primary-start: #4453c7;          /* yazı/kenarlık için koyu mor; gradyanlar değişmez */
+}
+[data-theme="light"] .header {
+    background: rgba(255, 255, 255, 0.88);
+    border-bottom-color: rgba(20, 20, 50, 0.08);
+}
+[data-theme="light"] .mobile-menu-toggle span { background: var(--text-primary); }
+[data-theme="light"] .social-btn--qr {
+    background: rgba(20, 20, 50, 0.05);
+    border: 1px solid rgba(20, 20, 50, 0.1);
+    color: var(--text-primary);
+}
+[data-theme="light"] .social-btn--qr:hover { background: rgba(20, 20, 50, 0.1); }
+[data-theme="light"] .profile-avatar .avatar__initials { color: var(--primary-start); }
+[data-theme="light"] .status-ok { color: #0a6f8f; }
+[data-theme="light"] .danger-title { color: #c8213f; }
+.header__nav a.btn--primary,
+[data-theme="light"] .header__nav a.btn--primary { color: #fff; }
+.social-btn--phone { background: linear-gradient(135deg, #00806f, #5f8f1f); }
+.social-btn--email { background: var(--btn-gradient); }
+.btn--danger { background: linear-gradient(135deg, #d61f4b 0%, #c8341a 100%); }
+:root:not([data-theme="light"]) .pf-badge,
+:root:not([data-theme="light"]) .pf-item__link {
+    color: color-mix(in srgb, var(--pf-accent, #667eea) 70%, #fff);
+}

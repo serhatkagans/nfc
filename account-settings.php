@@ -207,7 +207,7 @@ $profileUrl = SITE_URL . '/u/' . $user['username'];
                 <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 16px;">
                     Mevcut durum:
                     <?php if (!empty($user['email_verified'])): ?>
-                        <span style="color:#00d2ff;"><i class="fas fa-circle-check"></i> Doğrulanmış</span>
+                        <span class="status-ok"><i class="fas fa-circle-check"></i> Doğrulanmış</span>
                     <?php else: ?>
                         <span style="color:#f7971e;"><i class="fas fa-triangle-exclamation"></i> Doğrulanmamış</span>
                     <?php endif; ?>
@@ -261,7 +261,7 @@ $profileUrl = SITE_URL . '/u/' . $user['username'];
 
             <!-- Tehlikeli Bölge -->
             <div class="glass-card glass-card--no-hover dashboard-section danger-zone" style="margin-top: 24px;">
-                <h3 class="dashboard-section__title" style="color:#ff6b81;"><i class="fas fa-triangle-exclamation"></i> Tehlikeli Bölge</h3>
+                <h3 class="dashboard-section__title danger-title"><i class="fas fa-triangle-exclamation"></i> Tehlikeli Bölge</h3>
                 <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 16px;">
                     Hesabınızı sildiğinizde profiliniz, bağlantılarınız, kişi kayıtlarınız ve tüm verileriniz
                     <strong>kalıcı olarak</strong> silinir. Bu işlem geri alınamaz.

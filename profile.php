@@ -316,6 +316,7 @@ function showNotFound() {
             --primary-gradient: linear-gradient(135deg, <?= $theme['start'] ?> 0%, <?= $theme['end'] ?> 100%);
             --shadow-glow-primary: 0 0 30px <?= $theme['start'] ?>55;
         }
+        [data-theme="light"] { --primary-start: <?= darkenHex($theme['start'], 0.45) ?>; }
         body.profile-bg {
             background: linear-gradient(135deg, <?= $theme['bg1'] ?> 0%, <?= $theme['bg2'] ?> 55%, <?= $theme['bg1'] ?> 100%);
             background-size: 400% 400%;
@@ -343,14 +344,14 @@ function showNotFound() {
             color: var(--text-secondary);
         }
         .profile-meta__item i {
-            color: <?= $theme['start'] ?>;
+            color: var(--primary-start);
             margin-top: 3px;
             width: 16px;
             text-align: center;
             flex-shrink: 0;
         }
         .profile-meta__item a { color: var(--text-secondary); }
-        .profile-meta__item a:hover { color: <?= $theme['start'] ?>; }
+        .profile-meta__item a:hover { color: var(--primary-start); }
     </style>
 </head>
 <body class="profile-bg">
