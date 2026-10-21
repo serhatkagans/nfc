@@ -197,12 +197,38 @@ function showNotFound() {
 </html>
 <?php
 }
+// ---- Görünüm verileri (yeni profil tasarımı) ----
+$e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+$strip = fn($v) => ltrim(trim((string) $v), '@');
+
+// Hızlı işlemler (yuvarlak butonlar): [hedef, href, ikon, etiket, yeni sekme]
+$quick = [];
+if ($phone !== '')          $quick[] = ['phone',    'tel:' . $phone,                    'fas fa-phone',          'Ara',        false];
+if ($whatsappDigits !== '') $quick[] = ['whatsapp', 'https://wa.me/' . $whatsappDigits, 'fab fa-whatsapp',       'WhatsApp',   true];
+if ($email !== '')          $quick[] = ['email',    'mailto:' . $email,                 'fas fa-envelope',       'E-posta',    false];
+if ($mapUrlSafe !== '')     $quick[] = ['map',      $mapUrlSafe,                        'fas fa-location-arrow', 'Yol Tarifi', true];
+
+// Sosyal medya kutucukları: [hedef, url, ikon, etiket, alt satır]
+$socials = [];
+if ($instagram !== '') $socials[] = ['instagram', 'https://instagram.com/' . $strip($instagram), 'fab fa-instagram', 'Instagram', '@' . $strip($instagram)];
+if ($linkedin !== '')  $socials[] = ['linkedin', 'https://linkedin.com/in/' . $strip($linkedin), 'fab fa-linkedin-in', 'LinkedIn', $strip($linkedin)];
+if ($facebook !== '')  $socials[] = ['facebook', 'https://facebook.com/' . $strip($facebook), 'fab fa-facebook-f', 'Facebook', $strip($facebook)];
+if ($youtube !== '')   $socials[] = ['youtube', 'https://youtube.com/@' . $strip($youtube), 'fab fa-youtube', 'YouTube', '@' . $strip($youtube)];
+if ($tiktok !== '')    $socials[] = ['tiktok', 'https://www.tiktok.com/@' . $strip($tiktok), 'fab fa-tiktok', 'TikTok', '@' . $strip($tiktok)];
+if ($telegram !== '')  $socials[] = ['telegram', 'https://t.me/' . $strip($telegram), 'fab fa-telegram', 'Telegram', '@' . $strip($telegram)];
+if ($twitter !== '')   $socials[] = ['twitter', 'https://x.com/' . $strip($twitter), 'fab fa-x-twitter', 'X', '@' . $strip($twitter)];
+if ($website !== '') {
+    $siteHref = preg_match('~^https?://~i', $website) ? $website : 'https://' . $website;
+    $socials[] = ['website', $siteHref, 'fas fa-globe', 'Web Sitesi', preg_replace('~^www\.~', '', (string) parse_url($siteHref, PHP_URL_HOST))];
+}
+$vcardUrl = SITE_URL . '/profile.php?vcard=1&username=' . rawurlencode($user['username']);
+$i = 0; // giriş animasyonu sırası
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= $fullName ?> - <?= SITE_NAME ?></title>
 
     <!-- SEO & Social Sharing -->
@@ -220,93 +246,15 @@ function showNotFound() {
     <?php if ($profileImage): ?>
     <meta name="twitter:image" content="<?= $profileImage ?>">
     <?php endif; ?>
+    <meta name="theme-color" content="<?= $theme['bg1'] ?>">
 
-    <!-- Prevent indexing of profile pages for privacy -->
+    <!-- Profil sayfaları gizlilik için indekslenmez -->
     <meta name="robots" content="noindex, nofollow">
 
     <script>(function(){try{if(localStorage.getItem('theme')==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();</script>
     <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/profile.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <style>
-        /* Profile page specific enhancements */
-        .profile-bg {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 30%, #16213e 60%, #0d1b2a 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 20s ease infinite;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .profile-bg::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background:
-                radial-gradient(ellipse at 25% 25%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                radial-gradient(ellipse at 75% 75%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(240, 147, 251, 0.05) 0%, transparent 40%);
-            animation: float 10s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        .profile-bg::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            pointer-events: none;
-        }
-
-        .profile-page {
-            position: relative;
-            z-index: 1;
-        }
-
-        .profile-card {
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        .profile-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), rgba(240, 147, 251, 0.5), transparent);
-        }
-
-        .social-btn {
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        /* QR Kod */
-        .profile-actions {
-            margin-top: 14px;
-            display: flex;
-            justify-content: center;
-        }
-        .social-btn--qr {
-            background: rgba(255, 255, 255, 0.06);
-            color: #fff;
-        }
-        .social-btn--qr:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-    </style>
 
     <!-- Seçili profil teması -->
     <style>
@@ -315,81 +263,76 @@ function showNotFound() {
             --primary-end: <?= $theme['end'] ?>;
             --primary-gradient: linear-gradient(135deg, <?= $theme['start'] ?> 0%, <?= $theme['end'] ?> 100%);
             --shadow-glow-primary: 0 0 30px <?= $theme['start'] ?>55;
+            --pv-a: <?= $theme['start'] ?>;
+            --pv-b: <?= $theme['end'] ?>;
+            --pv-bg1: <?= $theme['bg1'] ?>;
+            --pv-bg2: <?= $theme['bg2'] ?>;
         }
         [data-theme="light"] { --primary-start: <?= darkenHex($theme['start'], 0.45) ?>; }
-        body.profile-bg {
-            background: linear-gradient(135deg, <?= $theme['bg1'] ?> 0%, <?= $theme['bg2'] ?> 55%, <?= $theme['bg1'] ?> 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 20s ease infinite;
-        }
-        .profile-avatar { background: var(--primary-gradient); }
-        .profile-card__profession {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin-top: 4px;
-            font-weight: 600;
-        }
-        .profile-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 16px;
-            text-align: left;
-        }
-        .profile-meta__item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        .profile-meta__item i {
-            color: var(--primary-start);
-            margin-top: 3px;
-            width: 16px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .profile-meta__item a { color: var(--text-secondary); }
-        .profile-meta__item a:hover { color: var(--primary-start); }
     </style>
 </head>
-<body class="profile-bg">
+<body class="pv">
 
-    <div class="profile-page">
-        <div class="glass-card profile-card">
+    <!-- Hareketli renk bulutları -->
+    <div class="pv-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
 
-            <!-- Profile Image -->
-            <div class="profile-avatar">
-                <?php if ($profileImage): ?>
-                    <img src="<?= $profileImage ?>" alt="<?= $fullName ?>">
-                <?php else: ?>
-                    <div class="avatar__initials"><?= $initials ?></div>
-                <?php endif; ?>
+    <main class="pv-wrap">
+        <article class="pv-card">
+
+            <!-- Kapak -->
+            <div class="pv-cover" aria-hidden="true">
+                <span class="pv-cover__shine"></span>
+                <span class="pv-chip"><i class="fas fa-wifi"></i> NFC</span>
             </div>
 
-            <!-- Name -->
-            <h1 class="profile-card__name"><?= $fullName ?></h1>
+            <!-- Avatar -->
+            <div class="pv-avatar">
+                <div class="pv-avatar__inner">
+                    <?php if ($profileImage): ?>
+                        <img src="<?= $profileImage ?>" alt="<?= $fullName ?>">
+                    <?php else: ?>
+                        <span class="pv-avatar__initials"><?= $e($initials) ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-            <!-- Ünvan / Şirket -->
-            <?php if ($professionLine !== ''): ?>
-                <p class="profile-card__profession"><?= $professionLine ?></p>
+            <header class="pv-head pv-in" style="--i:<?= $i++ ?>">
+                <h1 class="pv-name"><?= $fullName ?></h1>
+                <?php if ($professionLine !== ''): ?>
+                    <p class="pv-role"><?= $professionLine ?></p>
+                <?php endif; ?>
+                <?php if (!empty($bio)): ?>
+                    <p class="pv-bio"><?= nl2br($bio) ?></p>
+                <?php endif; ?>
+            </header>
+
+            <!-- Hızlı işlemler -->
+            <?php if ($quick): ?>
+            <nav class="pv-quick pv-in" style="--i:<?= $i++ ?>" aria-label="Hızlı iletişim">
+                <?php foreach ($quick as [$target, $href, $icon, $label, $blank]): ?>
+                <a href="<?= $e($href) ?>" class="pv-quick__btn pv-quick__btn--<?= $target ?>" data-target="<?= $target ?>"<?= $blank ? ' target="_blank" rel="noopener noreferrer"' : '' ?>>
+                    <span class="pv-quick__icon"><i class="<?= $icon ?>"></i></span>
+                    <span class="pv-quick__label"><?= $label ?></span>
+                </a>
+                <?php endforeach; ?>
+            </nav>
             <?php endif; ?>
 
-            <!-- Bio -->
-            <?php if (!empty($bio)): ?>
-                <p class="profile-card__bio"><?= nl2br($bio) ?></p>
-            <?php endif; ?>
+            <!-- Rehbere Kaydet -->
+            <a href="<?= $e($vcardUrl) ?>" class="pv-cta pv-in" style="--i:<?= $i++ ?>" data-target="vcard">
+                <i class="fas fa-user-plus"></i>
+                <span>Rehbere Kaydet</span>
+            </a>
 
             <!-- Adres & Çalışma Saatleri -->
             <?php if ($addressText !== '' || $workingHours !== ''): ?>
-            <div class="profile-meta">
+            <div class="pv-info pv-in" style="--i:<?= $i++ ?>">
                 <?php if ($addressText !== ''): ?>
-                <div class="profile-meta__item">
-                    <i class="fas fa-location-dot"></i>
+                <div class="pv-info__row">
+                    <span class="pv-info__icon"><i class="fas fa-location-dot"></i></span>
                     <span>
                         <?php if ($mapUrlSafe !== ''): ?>
-                            <a href="<?= htmlspecialchars($mapUrlSafe) ?>" target="_blank" rel="noopener noreferrer" data-track="click" data-target="map"><?= $addressText ?></a>
+                            <a href="<?= $e($mapUrlSafe) ?>" target="_blank" rel="noopener noreferrer" data-target="map"><?= $addressText ?></a>
                         <?php else: ?>
                             <?= $addressText ?>
                         <?php endif; ?>
@@ -397,148 +340,67 @@ function showNotFound() {
                 </div>
                 <?php endif; ?>
                 <?php if ($workingHours !== ''): ?>
-                <div class="profile-meta__item">
-                    <i class="fas fa-clock"></i>
+                <div class="pv-info__row">
+                    <span class="pv-info__icon"><i class="fas fa-clock"></i></span>
                     <span><?= $workingHours ?></span>
                 </div>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
 
-            <!-- Social Media Buttons -->
-            <?php if ($hasSocials): ?>
-            <div class="social-grid stagger-children">
-
-                <?php if (!empty($phone)): ?>
-                <a href="tel:<?= htmlspecialchars($phone) ?>" class="social-btn social-btn--phone">
-                    <i class="fas fa-phone"></i>
-                    <span>Ara</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($email)): ?>
-                <a href="mailto:<?= htmlspecialchars($email) ?>" class="social-btn social-btn--email">
-                    <i class="fas fa-envelope"></i>
-                    <span>E-posta</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($instagram)): ?>
-                <a href="https://instagram.com/<?= htmlspecialchars($instagram) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--instagram">
-                    <i class="fab fa-instagram"></i>
-                    <span>Instagram</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($linkedin)): ?>
-                <a href="https://linkedin.com/in/<?= htmlspecialchars($linkedin) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--linkedin">
-                    <i class="fab fa-linkedin-in"></i>
-                    <span>LinkedIn</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($facebook)): ?>
-                <a href="https://facebook.com/<?= htmlspecialchars($facebook) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--facebook">
-                    <i class="fab fa-facebook-f"></i>
-                    <span>Facebook</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($youtube)): ?>
-                <a href="https://youtube.com/@<?= htmlspecialchars($youtube) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--youtube">
-                    <i class="fab fa-youtube"></i>
-                    <span>YouTube</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($whatsappDigits)): ?>
-                <a href="https://wa.me/<?= htmlspecialchars($whatsappDigits) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--whatsapp">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($tiktok)): ?>
-                <a href="https://www.tiktok.com/@<?= htmlspecialchars(ltrim($tiktok, '@')) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--tiktok">
-                    <i class="fab fa-tiktok"></i>
-                    <span>TikTok</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($telegram)): ?>
-                <a href="https://t.me/<?= htmlspecialchars(ltrim($telegram, '@')) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--telegram">
-                    <i class="fab fa-telegram"></i>
-                    <span>Telegram</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($twitter)): ?>
-                <a href="https://x.com/<?= htmlspecialchars(ltrim($twitter, '@')) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--twitter">
-                    <i class="fab fa-x-twitter"></i>
-                    <span>X (Twitter)</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (!empty($website)): ?>
-                <a href="<?= htmlspecialchars(str_starts_with($website, 'http') ? $website : 'https://' . $website) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--website">
-                    <i class="fas fa-globe"></i>
-                    <span>Web Sitesi</span>
-                </a>
-                <?php endif; ?>
-
-                <!-- vCard Download -->
-                <a href="<?= SITE_URL ?>/profile.php?vcard=1&username=<?= htmlspecialchars($user['username']) ?>" class="social-btn social-btn--vcard">
-                    <i class="fas fa-address-book"></i>
-                    <span>Rehbere Kaydet</span>
-                </a>
-
-            </div>
-            <?php endif; ?>
-
-            <!-- Özel Bağlantılar -->
-            <?php if (!empty($customLinks)): ?>
-            <div class="custom-links stagger-children">
-                <?php foreach ($customLinks as $link): ?>
-                <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank" rel="noopener noreferrer" class="social-btn social-btn--custom" data-track="click" data-target="link:<?= (int)$link['id'] ?>">
-                    <i class="<?= htmlspecialchars($link['icon']) ?>"></i>
-                    <span><?= htmlspecialchars($link['title']) ?></span>
+            <!-- Sosyal medya -->
+            <?php if ($socials): ?>
+            <section class="pv-socials" aria-label="Sosyal medya">
+                <?php foreach ($socials as [$target, $href, $icon, $label, $sub]): ?>
+                <a href="<?= $e($href) ?>" target="_blank" rel="noopener noreferrer" class="pv-social pv-social--<?= $target ?> pv-in" style="--i:<?= $i++ ?>" data-target="<?= $target ?>">
+                    <span class="pv-social__icon"><i class="<?= $icon ?>"></i></span>
+                    <span class="pv-social__text">
+                        <span class="pv-social__label"><?= $label ?></span>
+                        <?php if ($sub !== ''): ?><span class="pv-social__sub"><?= $e($sub) ?></span><?php endif; ?>
+                    </span>
+                    <i class="fas fa-arrow-up-right-from-square pv-social__go" aria-hidden="true"></i>
                 </a>
                 <?php endforeach; ?>
-            </div>
+            </section>
             <?php endif; ?>
 
             <!-- Öğrenci Portfolyosu -->
             <?php if ($portfolioUrl !== ''): ?>
-            <div class="custom-links">
-                <a href="<?= htmlspecialchars($portfolioUrl) ?>" class="social-btn social-btn--custom" data-target="portfolio">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>Portfolyomu Gör</span>
-                </a>
-            </div>
+            <a href="<?= $e($portfolioUrl) ?>" class="pv-feature pv-in" style="--i:<?= $i++ ?>" data-target="portfolio">
+                <span class="pv-feature__icon"><i class="fas fa-graduation-cap"></i></span>
+                <span class="pv-feature__text">
+                    <strong>Öğrenci Portfolyom</strong>
+                    <span>Başarılarım, projelerim ve sertifikalarım</span>
+                </span>
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </a>
             <?php endif; ?>
 
-            <!-- QR Kod & İletişim Bırak -->
-            <div class="profile-actions">
-                <button type="button" class="social-btn social-btn--qr" id="qrToggleBtn">
-                    <i class="fas fa-qrcode"></i>
-                    <span>QR Kod</span>
-                </button>
-                <button type="button" class="social-btn social-btn--qr" id="leadToggleBtn">
-                    <i class="fas fa-user-plus"></i>
-                    <span>Bilgini Bırak</span>
-                </button>
-            </div>
-
-            <!-- Footer -->
-            <div class="profile-card__footer">
-                <a href="<?= SITE_URL ?>">
-                    <i class="fas fa-id-card-clip"></i>
-                    <?= SITE_NAME ?> ile oluşturuldu
+            <!-- Özel Bağlantılar -->
+            <?php if (!empty($customLinks)): ?>
+            <section class="pv-links">
+                <?php foreach ($customLinks as $link): ?>
+                <a href="<?= $e($link['url']) ?>" target="_blank" rel="noopener noreferrer" class="pv-link pv-in" style="--i:<?= $i++ ?>" data-target="link:<?= (int) $link['id'] ?>">
+                    <span class="pv-link__icon"><i class="<?= $e($link['icon']) ?>"></i></span>
+                    <span class="pv-link__label"><?= $e($link['title']) ?></span>
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
                 </a>
+                <?php endforeach; ?>
+            </section>
+            <?php endif; ?>
+
+            <!-- QR / Bilgi Bırak / Paylaş -->
+            <div class="pv-actions pv-in" style="--i:<?= $i++ ?>">
+                <button type="button" class="pv-pill" id="qrToggleBtn"><i class="fas fa-qrcode"></i> QR Kod</button>
+                <button type="button" class="pv-pill" id="leadToggleBtn"><i class="fas fa-handshake"></i> Bilgini Bırak</button>
+                <button type="button" class="pv-pill" id="shareBtn"><i class="fas fa-share-nodes"></i> Paylaş</button>
             </div>
 
-        </div>
-    </div>
+            <footer class="pv-footer">
+                <a href="<?= SITE_URL ?>"><i class="fas fa-id-card-clip"></i> <?= SITE_NAME ?> ile oluşturuldu</a>
+            </footer>
+        </article>
+    </main>
 
     <!-- QR Kod Modal -->
     <div class="qr-modal" id="qrModal" aria-hidden="true">
@@ -596,67 +458,11 @@ function showNotFound() {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
     (function () {
-        var profileUrl = <?= json_encode($qrUrl) ?>;
-        var modal = document.getElementById('qrModal');
-        var openBtn = document.getElementById('qrToggleBtn');
-        var qrContainer = document.getElementById('qrCode');
-        var downloadBtn = document.getElementById('qrDownloadBtn');
-        var qrInstance = null;
-
-        function openModal() {
-            // QR kodu ilk açılışta bir kez oluştur
-            if (!qrInstance && window.QRCode) {
-                qrInstance = new QRCode(qrContainer, {
-                    text: profileUrl,
-                    width: 240,
-                    height: 240,
-                    colorDark: '#0a0a1a',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-            }
-            modal.classList.add('open');
-            modal.setAttribute('aria-hidden', 'false');
-        }
-
-        function closeModal() {
-            modal.classList.remove('open');
-            modal.setAttribute('aria-hidden', 'true');
-        }
-
-        if (openBtn) openBtn.addEventListener('click', openModal);
-
-        modal.querySelectorAll('[data-qr-close]').forEach(function (el) {
-            el.addEventListener('click', closeModal);
-        });
-
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeModal();
-        });
-
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', function () {
-                var img = qrContainer.querySelector('img');
-                var canvas = qrContainer.querySelector('canvas');
-                var dataUrl = img ? img.src : (canvas ? canvas.toDataURL('image/png') : null);
-                if (!dataUrl) return;
-                var a = document.createElement('a');
-                a.href = dataUrl;
-                a.download = <?= json_encode($user['username'] . '-qr.png') ?>;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            });
-        }
-    })();
-    </script>
-
-    <!-- Analitik takip + Lead formu -->
-    <script>
-    (function () {
         var username = <?= json_encode($user['username']) ?>;
         var trackUrl = <?= json_encode(SITE_URL . '/track.php') ?>;
         var leadUrl  = <?= json_encode(SITE_URL . '/lead.php') ?>;
+        var qrUrl    = <?= json_encode($qrUrl) ?>;
+        var shareUrl = <?= json_encode($profileUrl . '?src=share') ?>;
 
         function track(type, target) {
             try {
@@ -664,97 +470,93 @@ function showNotFound() {
                 data.append('username', username);
                 data.append('type', type);
                 if (target) data.append('target', target);
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon(trackUrl, data);
-                } else {
-                    fetch(trackUrl, { method: 'POST', body: data, keepalive: true });
-                }
+                if (navigator.sendBeacon) navigator.sendBeacon(trackUrl, data);
+                else fetch(trackUrl, { method: 'POST', body: data, keepalive: true });
             } catch (e) {}
         }
 
-        // Sosyal / iletişim / özel bağlantı tıklamaları
-        document.querySelectorAll('a.social-btn').forEach(function (link) {
-            link.addEventListener('click', function () {
-                var target = link.getAttribute('data-target');
-                if (!target) {
-                    // Sınıftan platform adını çıkar (social-btn--instagram -> instagram)
-                    link.classList.forEach(function (cls) {
-                        if (cls.indexOf('social-btn--') === 0) {
-                            var name = cls.replace('social-btn--', '');
-                            if (name && name !== 'qr' && name !== 'custom') target = name;
-                        }
-                    });
-                }
-                // vCard sunucu tarafında ayrıca loglanır
-                if (target && target !== 'vcard') track('click', target);
+        // Tüm takip edilen bağlantılar (vCard sunucu tarafında ayrıca loglanır)
+        document.querySelectorAll('a[data-target]').forEach(function (a) {
+            a.addEventListener('click', function () {
+                var t = a.getAttribute('data-target');
+                if (t && t !== 'vcard') track('click', t);
             });
         });
 
-        // Harita bağlantısı (profil meta içindeki)
-        document.querySelectorAll('a[data-track="click"][data-target]').forEach(function (link) {
-            if (link.classList.contains('social-btn')) return; // yukarıda ele alındı
-            link.addEventListener('click', function () {
-                track('click', link.getAttribute('data-target'));
-            });
-        });
-
-        // QR modal açıldığında olayı logla
-        var qrBtn = document.getElementById('qrToggleBtn');
-        if (qrBtn) qrBtn.addEventListener('click', function () { track('qr', null); });
-
-        // ----- Lead (Bilgini Bırak) modal -----
-        var leadModal = document.getElementById('leadModal');
-        var leadOpen  = document.getElementById('leadToggleBtn');
-        var leadForm  = document.getElementById('leadForm');
-        var leadBtn   = document.getElementById('leadSubmitBtn');
-
-        function openLead() {
-            leadModal.classList.add('open');
-            leadModal.setAttribute('aria-hidden', 'false');
-        }
-        function closeLead() {
-            leadModal.classList.remove('open');
-            leadModal.setAttribute('aria-hidden', 'true');
+        // Modal yardımcısı
+        function modal(id, closeAttr) {
+            var m = document.getElementById(id);
+            var api = {
+                open: function () { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); },
+                close: function () { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+            };
+            m.querySelectorAll('[' + closeAttr + ']').forEach(function (el) { el.addEventListener('click', api.close); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') api.close(); });
+            return api;
         }
 
-        if (leadOpen) leadOpen.addEventListener('click', openLead);
-        leadModal.querySelectorAll('[data-lead-close]').forEach(function (el) {
-            el.addEventListener('click', closeLead);
+        // ----- QR -----
+        var qr = modal('qrModal', 'data-qr-close');
+        var qrBox = document.getElementById('qrCode');
+        var qrMade = false;
+        document.getElementById('qrToggleBtn').addEventListener('click', function () {
+            if (!qrMade && window.QRCode) {
+                new QRCode(qrBox, { text: qrUrl, width: 240, height: 240, colorDark: '#0a0a1a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+                qrMade = true;
+            }
+            qr.open();
+            track('qr', null);
         });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeLead();
+        document.getElementById('qrDownloadBtn').addEventListener('click', function () {
+            var img = qrBox.querySelector('img'), canvas = qrBox.querySelector('canvas');
+            var url = img && img.src && img.src.indexOf('data:') === 0 ? img.src : (canvas ? canvas.toDataURL('image/png') : null);
+            if (!url) return;
+            var a = document.createElement('a');
+            a.href = url; a.download = <?= json_encode($user['username'] . '-qr.png') ?>;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
         });
 
-        if (leadForm) {
-            leadForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                var nameVal = leadForm.querySelector('[name="name"]').value.trim();
-                if (!nameVal) return;
+        // ----- Paylaş -----
+        document.getElementById('shareBtn').addEventListener('click', function () {
+            if (navigator.share) {
+                navigator.share({ title: document.title, url: shareUrl }).catch(function () {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareUrl).then(function () {
+                    if (window.showToast) showToast('Link kopyalandı', 'success');
+                });
+            }
+            track('click', 'share');
+        });
 
-                leadBtn.disabled = true;
-                leadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+        // ----- Bilgini Bırak -----
+        var lead = modal('leadModal', 'data-lead-close');
+        var leadForm = document.getElementById('leadForm');
+        var leadBtn = document.getElementById('leadSubmitBtn');
+        document.getElementById('leadToggleBtn').addEventListener('click', lead.open);
 
-                fetch(leadUrl, { method: 'POST', body: new FormData(leadForm) })
-                    .then(function (r) { return r.json(); })
-                    .then(function (res) {
-                        if (res && res.ok) {
-                            leadForm.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
-                                '<i class="fas fa-circle-check" style="font-size:3rem;color:#00d2ff;"></i>' +
-                                '<p style="margin-top:12px;color:var(--text-secondary);">Bilgileriniz iletildi. Teşekkürler!</p>' +
-                                '</div>';
-                        } else {
-                            leadBtn.disabled = false;
-                            leadBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gönder';
-                            if (window.showToast) showToast((res && res.error) || 'Bir hata oluştu.', 'error');
-                        }
-                    })
-                    .catch(function () {
-                        leadBtn.disabled = false;
-                        leadBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gönder';
-                        if (window.showToast) showToast('Bağlantı hatası. Lütfen tekrar deneyin.', 'error');
-                    });
-            });
-        }
+        leadForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!leadForm.querySelector('[name="name"]').value.trim()) return;
+            leadBtn.disabled = true;
+            leadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+            function fail(msg) {
+                leadBtn.disabled = false;
+                leadBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gönder';
+                if (window.showToast) showToast(msg, 'error');
+            }
+            fetch(leadUrl, { method: 'POST', body: new FormData(leadForm) })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res && res.ok) {
+                        leadForm.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+                            '<i class="fas fa-circle-check" style="font-size:3rem;color:var(--primary-start);"></i>' +
+                            '<p style="margin-top:12px;color:var(--text-secondary);">Bilgileriniz iletildi. Teşekkürler!</p></div>';
+                    } else {
+                        fail((res && res.error) || 'Bir hata oluştu.');
+                    }
+                })
+                .catch(function () { fail('Bağlantı hatası. Lütfen tekrar deneyin.'); });
+        });
     })();
     </script>
 
